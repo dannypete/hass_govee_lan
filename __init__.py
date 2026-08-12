@@ -82,16 +82,19 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # TODO what happens if source_ip != entry_source_ip
     # entry_source_ip = entry.data[SOURCE_IP]
 
-    coordinator = GoveeLocalApiCoordinator(hass=hass, config_entry=entry, source_ip=source_ip)
+    coordinator = GoveeLocalApiCoordinator(hass=hass, config_entry=entry, controller=controller)
 
     try:
         await coordinator.start()
     except OSError as ex:
-        if ex.errno != EADDRINUSE:
-            _LOGGER.error("Start failed, errno: %d", ex.errno)
-            return False
-        _LOGGER.error("Port %s already in use", LISTENING_PORT)
-        raise ConfigEntryNotReady from ex
+        if ex.errno == EADDRINUSE:
+            _LOGGER.error("Port %s already in use", LISTENING_PORT)
+            raise ConfigEntryNotReady from ex
+        
+        # else:
+        _LOGGER.error("Start failed, errno: %d", ex.errno)
+        return False
+        
 
     await coordinator.async_config_entry_first_refresh()
 

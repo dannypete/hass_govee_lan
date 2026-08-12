@@ -22,7 +22,7 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN, MANUFACTURER
+from .const import DOMAIN, MANUFACTURER, FINGERPRINT
 from .coordinator import GoveeLocalApiCoordinator, GoveeLocalConfigEntry
 
 _LOGGER = logging.getLogger(__name__)
@@ -38,14 +38,16 @@ async def async_setup_entry(
     """Govee light setup."""
 
     coordinator = config_entry.runtime_data
+    fingerprint = config_entry.data[FINGERPRINT]
 
     def discovery_callback(device: GoveeDevice, is_new: bool) -> bool:
-        if is_new:
+        if is_new and device.fingerprint == fingerprint:
             async_add_entities([GoveeLight(coordinator, device)])
-        return True
+            return True
+        return False
 
     async_add_entities(
-        GoveeLight(coordinator, device) for device in coordinator.devices
+        GoveeLight(coordinator, device) for device in coordinator.devices if device.fingerprint == fingerprint
     )
 
     await coordinator.set_discovery_callback(discovery_callback)

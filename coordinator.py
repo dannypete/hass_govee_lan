@@ -30,7 +30,7 @@ class GoveeLocalApiCoordinator(DataUpdateCoordinator[list[GoveeDevice]]):
         self,
         hass: HomeAssistant,
         config_entry: GoveeLocalConfigEntry,
-        source_ip: str,
+        controller: GoveeController
     ) -> None:
         """Initialize my coordinator."""
         super().__init__(
@@ -41,17 +41,7 @@ class GoveeLocalApiCoordinator(DataUpdateCoordinator[list[GoveeDevice]]):
             update_interval=SCAN_INTERVAL,
         )
 
-        self.controller: GoveeController = GoveeController(
-                loop=hass.loop,
-                logger=_LOGGER,
-                listening_address=source_ip,
-                broadcast_address=CONF_MULTICAST_ADDRESS_DEFAULT,
-                broadcast_port=CONF_TARGET_PORT_DEFAULT,
-                listening_port=CONF_LISTENING_PORT_DEFAULT,
-                discovery_enabled=False,
-                discovery_interval=1,
-                update_enabled=False
-            )
+        self.controller: GoveeController = controller
         
 
     async def start(self) -> None:  

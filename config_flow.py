@@ -115,6 +115,7 @@ class GoveeLightLocalConfigFlow(ConfigFlow, domain=DOMAIN):
         errors = {}
 
         if user_input is not None:
+            self._cleanup_controller()
             self.controller: GoveeController = GoveeController(
                 loop=self.hass.loop,
                 logger=_LOGGER,
@@ -131,6 +132,8 @@ class GoveeLightLocalConfigFlow(ConfigFlow, domain=DOMAIN):
               await look_for_device(controller=self.controller, discovery_type=self.mode)
             except TimeoutError:
               errors["base"] = "discovery_unsuccessful"
+            except Exception as e:
+              errors["base"] = f"other_error:{e.with_traceback}"
             else:
                 return await self.async_step_choosedevice()
         
@@ -187,7 +190,7 @@ class GoveeLightLocalConfigFlow(ConfigFlow, domain=DOMAIN):
             except TimeoutError:
                 errors["base"] = "cannot_connect"
             else:
-                 return await self.async_step_choosedevice()          
+                 return await self.async_step_choosedevice()     
                 
         data_schema = vol.Schema(
             {
@@ -230,7 +233,7 @@ class GoveeLightLocalConfigFlow(ConfigFlow, domain=DOMAIN):
     
 
     async def async_step_choosedevice(
-        self, user_input: dict[str, Any] | None = None
+        self, user_input: dict[str, Any] | None = None, 
     ) -> ConfigFlowResult:
         
         errors = {}
@@ -327,3 +330,10 @@ class GoveeLightLocalConfigFlow(ConfigFlow, domain=DOMAIN):
     async def async_step_reconfigure(self, user_input: dict[str,Any] | None = None) -> ConfigFlowResult:
         # allow change of MODE or/and IP ADDRESS
         pass
+
+    async def _cleanup_controller(self) -> None:
+        if self.controller is not None:
+            cleanup_complete = self.controller.cleanup()
+            with suppress(TimeoutError):
+                await asyncio.wait_for(cleanup_complete.wait(), 1)
+            self.controller = None
